@@ -225,47 +225,8 @@ def set_video(inp, video_name):
     return cap, video, fps
 
 
-def predict_video(model=None, inp=None, output=None,
-                  checkpoints_path=None, display=False, overlay_img=True,
-                  class_names=None, show_legends=False, colors=class_colors,
-                  prediction_width=None, prediction_height=None):
-
-    if model is None and (checkpoints_path is not None):
-        model = model_from_checkpoint_path(checkpoints_path)
-    n_classes = model.n_classes
-
-    cap, video, fps = set_video(inp, output)
-    while(cap.isOpened()):
-        prev_time = time()
-        ret, frame = cap.read()
-        if frame is not None:
-            pr = predict(model=model, inp=frame)
-            fused_img = visualize_segmentation(
-                pr, frame, n_classes=n_classes,
-                colors=colors,
-                overlay_img=overlay_img,
-                show_legends=show_legends,
-                class_names=class_names,
-                prediction_width=prediction_width,
-                prediction_height=prediction_height
-                )
-        else:
-            break
-        print("FPS: {}".format(1/(time() - prev_time)))
-        if output is not None:
-            video.write(fused_img)
-        if display:
-            cv2.imshow('Frame masked', fused_img)
-            if cv2.waitKey(fps) & 0xFF == ord('q'):
-                break
-    cap.release()
-    if output is not None:
-        video.release()
-    cv2.destroyAllWindows()
-
-
 def evaluate(model=None, inp_images=None, annotations=None,
-             inp_images_dir=None, annotations_dir=None, checkpoints_path=None, read_image_type=1):
+             inp_images_dir=None, annotations_dir=None, checkpoints_path=None):
 
     if model is None:
         assert (checkpoints_path is not None),\
@@ -292,10 +253,10 @@ def evaluate(model=None, inp_images=None, annotations=None,
     n_pixels = np.zeros(model.n_classes)
 
     for inp, ann in tqdm(zip(inp_images, annotations)):
-        pr = predict(model, inp, read_image_type=read_image_type)
+        pr = predict(model, inp)
         gt = get_segmentation_array(ann, model.n_classes,
                                     model.output_width, model.output_height,
-                                    no_reshape=True, read_image_type=read_image_type)
+                                    no_reshape=True)
         gt = gt.argmax(-1)
         pr = pr.flatten()
         gt = gt.flatten()
@@ -307,13 +268,24 @@ def evaluate(model=None, inp_images=None, annotations=None,
             fn[cl_i] += np.sum((pr != cl_i) * ((gt == cl_i)))
             n_pixels[cl_i] += np.sum(gt == cl_i)
 
-    cl_wise_score = tp / (tp + fp + fn + 0.000000000001)
+    precision = tp / (tp + fp + 0.000000000001)
+    recall = tp / (tp + fn + 0.000000000001)
+    iou = tp / (tp + fp + fn + 0.000000000001)
+    cl_wise_score = iou
     n_pixels_norm = n_pixels / np.sum(n_pixels)
     frequency_weighted_IU = np.sum(cl_wise_score*n_pixels_norm)
     mean_IU = np.mean(cl_wise_score)
+    mean_precision = np.mean(precision)
+    mean_recall = np.mean(recall)
+    f1_score = 2 * (mean_precision * mean_recall) / (mean_precision + mean_recall)
 
     return {
         "frequency_weighted_IU": frequency_weighted_IU,
         "mean_IU": mean_IU,
-        "class_wise_IU": cl_wise_score
+        "class_wise_IU": cl_wise_score,
+        "precision": precision,
+        "recall": recall,
+        "mean_precision": mean_precision,
+        "mean_recall": mean_recall,
+        "f1_score": f1_score
     }
