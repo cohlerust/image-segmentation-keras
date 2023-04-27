@@ -253,10 +253,10 @@ def evaluate(model=None, inp_images=None, annotations=None,
     n_pixels = np.zeros(model.n_classes)
 
     for inp, ann in tqdm(zip(inp_images, annotations)):
-        pr = predict(model, inp)
+        pr = predict(model, inp, read_image_type=read_image_type)
         gt = get_segmentation_array(ann, model.n_classes,
                                     model.output_width, model.output_height,
-                                    no_reshape=True)
+                                    no_reshape=True, read_image_type=read_image_type)
         gt = gt.argmax(-1)
         pr = pr.flatten()
         gt = gt.flatten()
@@ -278,7 +278,7 @@ def evaluate(model=None, inp_images=None, annotations=None,
     mean_precision = np.mean(precision)
     mean_recall = np.mean(recall)
     f1_score = 2 * (mean_precision * mean_recall) / (mean_precision + mean_recall)
-    accuracy = tp / (tp + fp + fn)
+
     return {
         "frequency_weighted_IU": frequency_weighted_IU,
         "mean_IU": mean_IU,
@@ -287,6 +287,5 @@ def evaluate(model=None, inp_images=None, annotations=None,
         "recall": recall,
         "mean_precision": mean_precision,
         "mean_recall": mean_recall,
-        "f1_score": f1_score,
-        "classification_accuracy": accuracy
+        "f1_score": f1_score
     }
