@@ -226,7 +226,7 @@ def set_video(inp, video_name):
 
 
 def evaluate(model=None, inp_images=None, annotations=None,
-             inp_images_dir=None, annotations_dir=None, checkpoints_path=None):
+             inp_images_dir=None, annotations_dir=None, checkpoints_path=None, read_image_type=1):
 
     if model is None:
         assert (checkpoints_path is not None),\
@@ -256,7 +256,7 @@ def evaluate(model=None, inp_images=None, annotations=None,
         pr = predict(model, inp, read_image_type=read_image_type)
         gt = get_segmentation_array(ann, model.n_classes,
                                     model.output_width, model.output_height,
-                                    no_reshape=True, read_image_type=read_image_type)
+                                    no_reshape=True)
         gt = gt.argmax(-1)
         pr = pr.flatten()
         gt = gt.flatten()
