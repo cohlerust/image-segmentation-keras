@@ -278,7 +278,7 @@ def evaluate(model=None, inp_images=None, annotations=None,
     mean_precision = np.mean(precision)
     mean_recall = np.mean(recall)
     f1_score = 2 * (mean_precision * mean_recall) / (mean_precision + mean_recall)
-
+    accuracy = tp / (tp + fp + fn)
     return {
         "frequency_weighted_IU": frequency_weighted_IU,
         "mean_IU": mean_IU,
@@ -287,5 +287,6 @@ def evaluate(model=None, inp_images=None, annotations=None,
         "recall": recall,
         "mean_precision": mean_precision,
         "mean_recall": mean_recall,
-        "f1_score": f1_score
+        "f1_score": f1_score,
+        "classification_accuracy": accuracy
     }
